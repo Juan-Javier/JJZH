@@ -1,0 +1,145 @@
+### 2. Instalar estos Paquetes
+install.packages ("tidyverse")
+install.packages ("dplyr")
+install.packages ("plyr")
+install.packages ("tidyr")
+install.packages ("mlogit")
+install.packages ("stargazer")
+install.packages ("rsq")
+install.packages ("sjPlot")
+install.packages ("dslabs")
+
+### 2.1 Cargar desde la biblioteca estos Paquetes
+library(tidyverse)
+library(dplyr)
+library(plyr)
+library(tidyr)
+library(mlogit)
+library(stargazer)
+library(rsq)
+library(sjPlot)
+library(dslabs)
+
+## 2 Encuesta CEP
+### 2.1 Link: https://www.cepchile.cl/cep/encuestas-cep/encuestas-2010-2021/estudio-nacional-de-opinion-publica-n-85-septiembre-2021
+
+### 2.2 Importar base de datos
+library(haven)
+base_85 <- read_sav("Desktop/Escritorio - MacBook Air de Mac/Juan Javier/Magíster en Cs Sociales /2021/Semestre II/Métodos Cuanti/encuesta_cep_ago2021/base_85.sav")
+View(base_85)
+
+# 2.3Variable numérica
+base_85[sapply(base_85, is.numeric)] <- lapply(base_85[sapply(base_85, is.numeric)], as.factor)
+
+## 3. Análisis descriptivo
+
+### 3.1 Frecuencias
+
+### Variable Inicial: elec_pres_1
+table(base_85$elec_pres_1)
+
+### Variable dependiente: elec_pres_1 en porcentaje 
+table(base_85$elec_pres_1)
+table_1 <- table(base_85$elec_pres_1)
+prop.table(table_1)
+
+
+### 3.2 Ejemplo tablas de contingencia: elec_pres_1 y sexo
+## Visualizacion en RStudio
+sjt.xtab(
+  base_85$elec_pres_1, # variable 1
+  base_85$sexo, # variable 2
+  var.labels = c("Presidente", "Sexo"),
+  show.exp = TRUE
+)
+
+## Visualizacion en word
+sjt.xtab(base_85$elec_pres_1, #filas
+         base_85$sexo, #columnas
+         file = "1.doc")
+
+### Ejemplo tablas de contingencia: elec_pres_1 y sexo % Columnas
+sjt.xtab(base_85$elec_pres_1, #filas
+         base_85$sexo, #columnas
+         show.col.prc = T, file = "5.doc")
+
+### Ejemplo tablas de contingencia: elec_pres_1 y sexo % Filas y Columnas
+sjt.xtab(base_85$elec_pres_1, #filas
+         base_85$sexo, #columnas
+         show.col.prc = T, show.row.prc = T, file = "6.doc")
+
+## mi análisis
+
+### Ejemplo tablas de contingencia: ciudadania_29_b y edad % Filas y Columnas
+sjt.xtab(base_85$ciudadania_29_b, #filas
+         base_85$Edad_Re6, #columnas
+         show.col.prc = T, show.row.prc = T, file = "16.doc")
+
+### Ejemplo tablas de contingencia: ciudadania_29_b y situación laboral % Filas y Columnas
+sjt.xtab(base_85$ciudadania_29_b, #filas
+         base_85$info_enc_56, #columnas
+         show.col.prc = T, show.row.prc = T, file = "18.doc")
+
+### Ejemplo tablas de contingencia: ciudadania_29_b y nivel de escolaridad % Filas y Columnas
+sjt.xtab(base_85$ciudadania_29_b, #filas
+         base_85$esc_nivel_1_R, #columnas
+         show.col.prc = T, show.row.prc = T, file = "13.doc")
+
+### Ejemplo tablas de contingencia: ciudadania_29_b y GSE % Filas y Columnas
+sjt.xtab(base_85$ciudadania_29_b, #filas
+         base_85$gse, #columnas
+         show.col.prc = T, show.row.prc = T, file = "11.doc")
+
+
+base_85["justificacion_evasion"] <- as.numeric(as.character(base_85$ciudadania_29_b)) 
+
+base_85["Trabaja"] <- as.numeric(as.character(base_85$info_enc_56)) 
+
+## 5. Recodificar y crear una nueva variable 
+
+## 5.1 Variable dummy 1 ciudadania_29_b -- BINARIA
+base_85$justificacion_evasion.Dummy<-ifelse(base_85$justificacion_evasion=="1",1,0)
+table(base_85$justificacion_evasion.Dummy)
+
+## 5.1 Variable dummy 1 info_enc_56 -- BINARIA
+base_85$trabaja.Dummy<-ifelse(base_85$Trabaja=="1",1,0)
+table(base_85$trabaja.Dummy)
+
+##### 7.1.2. Variables numéricas
+
+###### Edad: age_N-2
+
+base_85["age_N-2"] <- as.numeric(as.character(base_85$edad))
+
+###### GSE: Geupo socioeconómico
+
+base_85["GSE-N"] <- as.numeric(as.character(base_85$gse))
+
+### 10. Correr Regresion Logistica Binaria ## El que hay que hacer
+
+### 10.1. Definir variables para regresión logistica
+
+##### 10.1.1. Variable Dependiente: base_85$justificacion_evasion.Dummy
+
+# Variable Independiente  1: Edad
+# Variable Independiente  2: trabaja.Dummy
+# Variable Independiente  3: GSE
+# Variable Independiente  4: sexo
+
+# 19. 2 modelos adicional m9 y m10 sin cbind()
+
+m9 = glm(base_85$justificacion_evasion.Dummy ~ base_85$`age_N-2` + 
+           base_85$trabaja.Dummy + base_85$`GSE-N`,
+         data = base_85,
+         binomial())
+summary(m9)
+
+m10 = glm(base_85$justificacion_evasion.Dummy ~ base_85$`age_N-2` + 
+           base_85$trabaja.Dummy  + base_85$`GSE-N` + base_85$sexo,
+         data = base_85,
+         binomial())
+summary(m10)
+
+# 20. Tabular Regresion Logistica Binaria de m7 y m8
+stargazer(m9, m10, title = "Modelos 9 y 10", align =TRUE, 
+          out = "resultados6.txt")
